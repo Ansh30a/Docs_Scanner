@@ -6,30 +6,20 @@ export interface AuthRequest extends Request {
 };
 
 export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
-    const token = req.headers.authorization?.split("Bearer ")[1];
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
-        return res
-        .status(401)
-        .json(
-            {
-                error: "Unauthorized!!!"
-            }
-        );
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "Unauthorized!" });
     }
+
+    const token = authHeader.split('Bearer ')[1];
 
     try {
         const decoded = await auth.verifyIdToken(token);
         req.userId = decoded.uid;
         next();
-
-    } catch {
-        return res
-        .status(401)
-        .json(
-            {
-                error: "Invalid Token!!!"
-            }
-        );
+    } catch (err) {
+        console.error('Token verification failed:', err);
+        return res.status(401).json({ error: "Invalid Token!" });
     };
 };
