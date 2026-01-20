@@ -1,12 +1,12 @@
-import fs from "fs/promises";
-import { Request, Response } from "express";
+import fs from 'fs/promises';
+import { Request, Response } from 'express';
 import multer from "multer";
-import { v4 as uuid } from "uuid";
-import { detectDocumentContour } from "../cv/detectDocument";
-import { warpDocument } from "../cv/perspective";
-import { ensureUploadDir, getUploadPath } from "../utils/fileStorage";
-import { db } from "../config/firebase";
-import { pdfFirstPageToImage } from '../utils/pdfToImage';
+import { v4 as uuid } from 'uuid';
+import { detectDocumentContour } from '../cv/detectDocument.js';
+import { warpDocument } from "../cv/perspective.js";
+import { ensureUploadDir, getUploadPath } from '../utils/fileStorage.js';
+import { db } from '../config/firebase.js';
+import { pdfFirstPageToImage } from '../utils/pdfToImage.js';
 
 ensureUploadDir();
 

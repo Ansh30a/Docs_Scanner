@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import uploadRoutes from './routes/uploadRoutes';
+import uploadRoutes from './routes/uploadRoutes.js';
 import path from 'node:path';
 
 const app = express();

@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { requireAuth } from '../middlewares/auth';
-import { handleUpload, uploadMiddleware } from '../controllers/uploadController';
-import { db } from '../config/firebase';
+import { requireAuth } from '../middlewares/auth.js';
+import { handleUpload, uploadMiddleware } from '../controllers/uploadController.js';
+import { db } from '../config/firebase.js';
 
 const router = Router();
 
