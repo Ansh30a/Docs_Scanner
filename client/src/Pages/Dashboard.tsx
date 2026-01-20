@@ -1,8 +1,18 @@
+import Navbar from '../Components/Navbar';
+import UploadBox from '../Components/UploadBox';
+import Gallery from '../Components/Gallery';
+import { useState } from 'react';
+
 export default function Dashboard() {
+    const [refresh, setRefresh] = useState(false);
+
     return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-600-gray mt-2">Upload & Scan Documents here ---</p>
+        <>
+        <Navbar />
+        <div className="p-6 max-w-4xl mx-auto">
+            <UploadBox onComplete={() => setRefresh(!refresh)} />
+            <Gallery key={String(refresh)} />
         </div>
+        </>
     );
-};
+}
