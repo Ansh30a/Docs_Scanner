@@ -6,6 +6,7 @@ import { detectDocumentContour } from "../cv/detectDocument";
 import { warpDocument } from "../cv/perspective";
 import { ensureUploadDir, getUploadPath } from "../utils/fileStorage";
 import { db } from "../config/firebase";
+import { pdfFirstPageToImage } from '../utils/pdfToImage';
 
 ensureUploadDir();
 
@@ -33,7 +34,14 @@ export const handleUpload = async (
     const originalPath = getUploadPath(`${id}-original.png`);
     const processedPath = getUploadPath(`${id}-processed.png`);
 
-    await fs.rename(req.file.path, originalPath);
+    if (req.file.mimetype === "application/pdf") {
+        await pdfFirstPageToImage(req.file.path, originalPath);
+
+        await fs.unlink(req.file.path);
+    } 
+    else {
+        await fs.rename(req.file.path, originalPath);
+    }
 
     const contour = await detectDocumentContour(originalPath);
 
@@ -61,8 +69,8 @@ export const handleUpload = async (
       warning
     });
 
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     res
     .status(500)
     .json(
