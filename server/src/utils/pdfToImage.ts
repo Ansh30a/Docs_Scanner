@@ -1,4 +1,4 @@
-import { createCanvas, Image, CanvasRenderingContext2D } from 'canvas';
+import { createCanvas, CanvasRenderingContext2D } from 'canvas';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import fs from 'fs';
 
