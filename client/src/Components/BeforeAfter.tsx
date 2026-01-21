@@ -1,44 +1,112 @@
+import { useState } from 'react';
+import type { UploadRecord } from '../Types/upload';
+
 interface Props {
-  original: string;
-  processed: string;
-  warning: boolean;
+    upload: UploadRecord;
+    onClose: () => void;
+    onDelete: () => void;
 }
 
-export default function BeforeAfter({ original, processed, warning }: Props) {
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = processed;
-    link.download = `scanned-${Date.now()}.png`;
-    link.click();
-  };
+export default function BeforeAfter({ upload, onClose, onDelete }: Props) {
+    const [zoomedImage, setZoomedImage] = useState<'original' | 'processed' | null>(null);
 
-  return (
-    <div className="mt-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <h3 className="font-semibold mb-1">Original</h3>
-          <img src={original} alt="Original" className="rounded border w-full" />
-        </div>
+    const handleDownload = (url: string, suffix: string) => {
+        const link = document.createElement('a');
+        link.href = url;
+        const baseName = upload.filename?.replace(/\.[^/.]+$/, '') || 'document';
+        link.download = `${baseName}-${suffix}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
-        <div>
-          <h3 className="font-semibold mb-1">Scanned</h3>
-          <img src={processed} alt="Scanned" className="rounded border w-full" />
-          {warning && (
-            <p className="text-yellow-600 text-sm mt-2">
-              Auto-crop fallback used. Review result.
-            </p>
-          )}
-        </div>
-      </div>
-      
-      <div className="flex gap-2 mt-4 justify-center">
-        <button 
-          onClick={handleDownload}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-        >
-          Download Scanned Image
-        </button>
-      </div>
-    </div>
-  );
-}
+    const originalUrl = `http://localhost:5000${upload.originalUrl}`;
+    const processedUrl = `http://localhost:5000${upload.processedUrl}`;
+
+    return (
+        <>
+            <div className="modal-overlay" onClick={onClose}></div>
+            <div className="before-after-modal">
+                <div className="modal-header">
+                    <h3>{upload.filename || 'Document'}</h3>
+                    <button className="close-btn" onClick={onClose} title="Close">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="comparison-grid">
+                    <div className="comparison-panel">
+                        <div className="panel-header">
+                            <span className="panel-label">Original</span>
+                        </div>
+                        <div className="image-container" onClick={() => setZoomedImage('original')}>
+                            <img src={originalUrl} alt="Original document" />
+                            <div className="zoom-hint">Click to zoom</div>
+                        </div>
+                        <button
+                            className="download-btn secondary"
+                            onClick={() => handleDownload(originalUrl, 'original')}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                            </svg>
+                            Download Original
+                        </button>
+                    </div>
+
+                    <div className="comparison-panel">
+                        <div className="panel-header">
+                            <span className="panel-label scanned">Scanned</span>
+                            {upload.warning && (
+                                <span className="warning-tag">⚠️ Fallback used</span>
+                            )}
+                        </div>
+                        <div className="image-container" onClick={() => setZoomedImage('processed')}>
+                            <img src={processedUrl} alt="Scanned document" />
+                            <div className="zoom-hint">Click to zoom</div>
+                        </div>
+                        <button
+                            className="download-btn primary"
+                            onClick={() => handleDownload(processedUrl, 'scanned')}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                            </svg>
+                            Download Scanned
+                        </button>
+                    </div>
+                </div>
+
+                {upload.warning && (
+                    <div className="warning-message">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+                        </svg>
+                        Document edges could not be detected with high confidence. The original image was used as fallback.
+                    </div>
+                )}
+
+                <div className="modal-actions">
+                    <button className="delete-btn-large" onClick={onDelete}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                        </svg>
+                        Delete Document
+                    </button>
+                </div>
+            </div>
+
+            {zoomedImage && (
+                <div className="zoom-modal" onClick={() => setZoomedImage(null)}>
+                    <img
+                        src={zoomedImage === 'original' ? originalUrl : processedUrl}
+                        alt={zoomedImage === 'original' ? 'Original zoomed' : 'Scanned zoomed'}
+                    />
+                    <p className="zoom-hint-text">Click anywhere to close</p>
+                </div>
+            )}
+        </>
+    );
+};
