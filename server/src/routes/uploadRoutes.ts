@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth } from '../middlewares/auth.js';
 import { handleUpload, uploadMiddleware, handleMulterError, handleDelete } from '../controllers/uploadController.js';
 import { db } from '../config/firebase.js';
+import { handleDownload } from '../controllers/uploadController.js';
 
 const router = Router();
 
@@ -31,6 +32,12 @@ router.get('/', requireAuth, async (req: any, res) => {
         res.status(500).json({ error: "Failed to fetch uploads" });
     }
 });
+
+router.get(
+    '/:docId/download/:type',
+    requireAuth,
+    handleDownload
+);
 
 router.delete('/:docId', requireAuth, handleDelete);
 

@@ -7,6 +7,8 @@ import { warpDocument } from "../cv/perspective.js";
 import { ensureUploadDir, getUploadPath } from '../utils/fileStorage.js';
 import { db } from '../config/firebase.js';
 import { pdfFirstPageToImage } from '../utils/pdfToImage.js';
+import cloudinary from '../config/cloudinary.js';
+import axios from 'axios';
 
 ensureUploadDir();
 
@@ -49,6 +51,9 @@ export const handleUpload = async (
     req: Request & { userId?: string },
     res: Response
 ) => {
+    let tempOriginalPath: string | null = null;
+    let tempProcessedPath: string | null = null;
+
     try {
         if (!req.file) {
             return res.status(400).json({ error: "No file uploaded" });
@@ -58,33 +63,53 @@ export const handleUpload = async (
         const id = uuid();
         const originalFilename = req.file.originalname;
 
-        const originalPath = getUploadPath(`${id}-original.png`);
-        const processedPath = getUploadPath(`${id}-processed.png`);
+        tempOriginalPath = getUploadPath(`${id}-original.png`);
+        tempProcessedPath = getUploadPath(`${id}-processed.png`);
 
         if (req.file.mimetype === "application/pdf") {
-            await pdfFirstPageToImage(req.file.path, originalPath);
+            await pdfFirstPageToImage(req.file.path, tempOriginalPath);
             await fs.unlink(req.file.path);
         } else {
-            await fs.rename(req.file.path, originalPath);
+            await fs.rename(req.file.path, tempOriginalPath);
         }
 
-        const contour = await detectDocumentContour(originalPath);
+        const contour = await detectDocumentContour(tempOriginalPath);
 
         let warning = false;
 
         if (contour) {
-            await warpDocument(originalPath, contour, processedPath);
+            await warpDocument(tempOriginalPath, contour, tempProcessedPath);
         } else {
             warning = true;
-            await fs.copyFile(originalPath, processedPath);
+            await fs.copyFile(tempOriginalPath, tempProcessedPath);
         }
+
+        const uploadToCloudinary = async (filePath: string, publicId: string) => {
+            return await cloudinary.uploader.upload(filePath, {
+                folder: 'docscanner',
+                public_id: publicId,
+                resource_type: 'image'
+            });
+        };
+
+        const [originalUpload, processedUpload] = await Promise.all([
+            uploadToCloudinary(tempOriginalPath, `${userId}/${id}-original`),
+            uploadToCloudinary(tempProcessedPath, `${userId}/${id}-processed`)
+        ]);
+
+        await Promise.all([
+            fs.unlink(tempOriginalPath),
+            fs.unlink(tempProcessedPath)
+        ]);
 
         const docRef = await db.collection("uploads").add({
             id,
             userId,
             filename: originalFilename,
-            originalUrl: `/uploads/${id}-original.png`,
-            processedUrl: `/uploads/${id}-processed.png`,
+            originalUrl: originalUpload.secure_url,
+            processedUrl: processedUpload.secure_url,
+            cloudinaryOriginalId: originalUpload.public_id,
+            cloudinaryProcessedId: processedUpload.public_id,
             warning,
             createdAt: new Date()
         });
@@ -96,21 +121,82 @@ export const handleUpload = async (
             id,
             docId: docRef.id,
             filename: originalFilename,
-            originalUrl: `/uploads/${id}-original.png`,
-            processedUrl: `/uploads/${id}-processed.png`,
+            originalUrl: originalUpload.secure_url,
+            processedUrl: processedUpload.secure_url,
             warning
         });
 
     } catch (error) {
         console.error('Upload error:', error);
 
+        if (tempOriginalPath) {
+            try { await fs.unlink(tempOriginalPath); } catch { }
+        }
+        if (tempProcessedPath) {
+            try { await fs.unlink(tempProcessedPath); } catch { }
+        }
+
         if (req.file?.path) {
-            try {
-                await fs.unlink(req.file.path);
-            } catch { }
+            try { await fs.unlink(req.file.path); } catch { }
         }
 
         res.status(500).json({ error: "Upload failed. Please try again." });
+    }
+};
+
+export const handleDownload = async (
+    req: Request & { userId?: string },
+    res: Response
+) => {
+    try {
+        const { docId, type } = req.params;
+
+        if (type !== 'original' && type !== 'processed') {
+            return res.status(400).json({ error: 'Invalid download type' });
+        }
+
+        const docRef = db.collection('uploads').doc(docId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        const data = docSnap.data();
+
+        if (data?.userId !== req.userId) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        const fileUrl =
+            type === 'original'
+                ? data.originalUrl
+                : data.processedUrl;
+
+        if (!fileUrl) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        const filenameBase =
+            (data.filename ?? 'document').replace(/\.[^/.]+$/, '');
+
+        const downloadName = `${filenameBase}-${type}.png`;
+
+        const response = await axios.get(fileUrl, {
+            responseType: 'stream'
+        });
+
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${downloadName}"`
+        );
+        res.setHeader('Content-Type', 'image/png');
+
+        response.data.pipe(res);
+
+    } catch (error) {
+        console.error('Download error:', error);
+        res.status(500).json({ error: 'Download failed' });
     }
 };
 
@@ -148,15 +234,10 @@ export const handleDelete = async (
             return res.status(403).json({ error: "Not authorized to delete this document" });
         }
 
-        const fileId = data?.id;
-
-        if (fileId) {
-            const originalPath = getUploadPath(`${fileId}-original.png`);
-            const processedPath = getUploadPath(`${fileId}-processed.png`);
-
+        if (data?.cloudinaryOriginalId && data?.cloudinaryProcessedId) {
             await Promise.all([
-                fs.unlink(originalPath).catch(() => { }),
-                fs.unlink(processedPath).catch(() => { })
+                cloudinary.uploader.destroy(data.cloudinaryOriginalId),
+                cloudinary.uploader.destroy(data.cloudinaryProcessedId)
             ]);
         }
 
