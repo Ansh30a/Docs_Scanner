@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import type { DragEvent } from 'react';
 import api from '../Services/api';
+import type { AxiosError } from 'axios';
 
 interface Props {
     onComplete: () => void;
@@ -52,8 +53,11 @@ export default function UploadBox({ onComplete }: Props) {
             });
             setProgress(100);
             onComplete();
-        } catch (err: any) {
-            const message = err.response?.data?.error || "Upload failed!!! Please try again.";
+        } catch (err: unknown) {
+            const axiosError = err as AxiosError<{ error?: string }>;
+            const message =
+                axiosError.response?.data?.error ??
+                "Upload failed!!! Please try again.";
             setError(message);
         } finally {
             setLoading(false);
