@@ -8,32 +8,41 @@ const __dirname = path.dirname(__filename);
 export type Point2 = { x: number; y: number };
 
 export const warpDocument = (
-  imagePath: string,
-  points: Point2[],
-  outputPath: string
+    imagePath: string,
+    points: Point2[],
+    outputPath: string
 ): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const scriptPath = path.resolve(
-      __dirname,
-      "../../native/warp_document.py"
-    );
+    return new Promise((resolve, reject) => {
+        const scriptPath = path.resolve(
+            __dirname,
+            "../../native/warp_document.py"
+        );
 
-    execFile(
-      "python3",
-      [
-        scriptPath,
-        imagePath,
-        JSON.stringify(points.map(p => [p.x, p.y])),
-        outputPath
-      ],
-      { maxBuffer: 5 * 1024 * 1024 },
-      (error, _stdout, stderr) => {
-        if (error) return reject(error);
-        if (stderr && stderr.trim()) {
-          return reject(new Error(stderr));
-        }
-        resolve();
-      }
-    );
-  });
+        execFile(
+            "python3",
+            [
+                scriptPath,
+                imagePath,
+                JSON.stringify(points.map(p => [p.x, p.y])),
+                outputPath
+            ],
+            { maxBuffer: 5 * 1024 * 1024 },
+            (error, _stdout, stderr) => {
+                if (error) return reject(error);
+
+                if (stderr && stderr.trim()) {
+                    const stderrLower = stderr.toLowerCase();
+                    const isWarning = stderrLower.includes('warning') ||
+                        stderrLower.includes('deprecat') ||
+                        stderrLower.includes('futurewarning');
+
+                    if (!isWarning) {
+                        return reject(new Error(stderr));
+                    }
+                }
+
+                resolve();
+            }
+        );
+    });
 };
