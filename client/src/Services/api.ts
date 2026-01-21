@@ -2,7 +2,7 @@ import axios from 'axios';
 import { auth } from './firebase';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api'
+    baseURL: `http://localhost:5000/api`
 });
 
 api.interceptors.request.use(async (config) => {
@@ -14,5 +14,9 @@ api.interceptors.request.use(async (config) => {
     }
     return config;
 });
+
+export const deleteUpload = async (docId: string): Promise<void> => {
+    await api.delete(`/upload/${docId}`);
+};
 
 export default api;
