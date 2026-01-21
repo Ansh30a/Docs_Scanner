@@ -24,7 +24,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const upload = multer({
     dest: "uploads/tmp",
     limits: { fileSize: MAX_FILE_SIZE },
-    fileFilter: (_req, file, callBack) => {
+    fileFilter: (_, file, callBack) => {
         if (ALLOWED_MIMETYPES.includes(file.mimetype)) {
             callBack(null, true);
         } else {
@@ -35,17 +35,26 @@ const upload = multer({
 
 export const uploadMiddleware = upload.single("file");
 
-export const handleMulterError = (err: any, req: Request, res: Response, next: Function) => {
+export const handleMulterError = (
+    err: unknown,
+    _req: Request,
+    res: Response,
+    next: Function
+) => {
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+            return res.status(400).json({ error: 'File too large. Maximum size is 10MB!!!' });
         }
         return res.status(400).json({ error: err.message });
-    } else if (err) {
+    }
+
+    if (err instanceof Error) {
         return res.status(400).json({ error: err.message });
     }
+
     next();
 };
+
 
 export const handleUpload = async (
     req: Request & { userId?: string },
@@ -149,7 +158,13 @@ export const handleDownload = async (
     res: Response
 ) => {
     try {
-        const { docId, type } = req.params;
+        const { docId: rawDocId, type } = req.params;
+
+        if (typeof rawDocId !== 'string') {
+            return res.status(400).json({ error: 'Invalid document ID' });
+        }
+
+        const docId = rawDocId;
 
         if (type !== 'original' && type !== 'processed') {
             return res.status(400).json({ error: 'Invalid download type' });
@@ -164,9 +179,14 @@ export const handleDownload = async (
 
         const data = docSnap.data();
 
-        if (data?.userId !== req.userId) {
+        if (!data) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        if (data.userId !== req.userId) {
             return res.status(403).json({ error: 'Not authorized' });
         }
+
 
         const fileUrl =
             type === 'original'
