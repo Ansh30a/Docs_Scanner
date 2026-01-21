@@ -20,9 +20,6 @@ export default function BeforeAfter({ upload, onClose, onDelete }: Props) {
         document.body.removeChild(link);
     };
 
-    const originalUrl = `http://localhost:5000${upload.originalUrl}`;
-    const processedUrl = `http://localhost:5000${upload.processedUrl}`;
-
     return (
         <>
             <div className="modal-overlay" onClick={onClose}></div>
@@ -42,12 +39,12 @@ export default function BeforeAfter({ upload, onClose, onDelete }: Props) {
                             <span className="panel-label">Original</span>
                         </div>
                         <div className="image-container" onClick={() => setZoomedImage('original')}>
-                            <img src={originalUrl} alt="Original document" />
+                            <img src={upload.originalUrl} alt="Original document" />
                             <div className="zoom-hint">Click to zoom</div>
                         </div>
                         <button
                             className="download-btn secondary"
-                            onClick={() => handleDownload(originalUrl, 'original')}
+                            onClick={() => handleDownload(upload.originalUrl, 'original')}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
@@ -60,16 +57,16 @@ export default function BeforeAfter({ upload, onClose, onDelete }: Props) {
                         <div className="panel-header">
                             <span className="panel-label scanned">Scanned</span>
                             {upload.warning && (
-                                <span className="warning-tag">⚠️ Fallback used</span>
+                                <span className="warning-tag">Fallback used</span>
                             )}
                         </div>
                         <div className="image-container" onClick={() => setZoomedImage('processed')}>
-                            <img src={processedUrl} alt="Scanned document" />
+                            <img src={upload.processedUrl} alt="Scanned document" />
                             <div className="zoom-hint">Click to zoom</div>
                         </div>
                         <button
                             className="download-btn primary"
-                            onClick={() => handleDownload(processedUrl, 'scanned')}
+                            onClick={() => handleDownload(upload.processedUrl, 'scanned')}
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
@@ -101,7 +98,7 @@ export default function BeforeAfter({ upload, onClose, onDelete }: Props) {
             {zoomedImage && (
                 <div className="zoom-modal" onClick={() => setZoomedImage(null)}>
                     <img
-                        src={zoomedImage === 'original' ? originalUrl : processedUrl}
+                        src={zoomedImage === 'original' ? upload.originalUrl : upload.processedUrl}
                         alt={zoomedImage === 'original' ? 'Original zoomed' : 'Scanned zoomed'}
                     />
                     <p className="zoom-hint-text">Click anywhere to close</p>

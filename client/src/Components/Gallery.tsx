@@ -44,7 +44,6 @@ export default function Gallery({ onRefresh }: Props) {
         try {
             await deleteUpload(upload.docId);
 
-            // Optimistic UI update
             setUploads(prev => prev.filter(u => u.docId !== upload.docId));
 
             if (selected?.docId === upload.docId) {
@@ -108,7 +107,7 @@ export default function Gallery({ onRefresh }: Props) {
                             onClick={() => setSelected(u)}
                         >
                             <img
-                                src={`http://localhost:5000${u.processedUrl}`}
+                                src={u.processedUrl}
                                 alt={u.filename || "Processed document"}
                             />
                             <div className="gallery-item-overlay">
