@@ -16,16 +16,17 @@ const ALLOWED_MIMETYPES = [
     'image/jpg',
     'application/pdf'
 ];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const upload = multer({
     dest: "uploads/tmp",
     limits: { fileSize: MAX_FILE_SIZE },
-    fileFilter: (_req, file, cb) => {
+    fileFilter: (_req, file, callBack) => {
         if (ALLOWED_MIMETYPES.includes(file.mimetype)) {
-            cb(null, true);
+            callBack(null, true);
         } else {
-            cb(new Error(`Invalid file type. Allowed: PNG, JPEG, PDF`));
+            callBack(new Error(`Invalid file type. Allowed: PNG, JPEG, PDF`));
         }
     }
 });
