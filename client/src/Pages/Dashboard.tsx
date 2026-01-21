@@ -4,15 +4,23 @@ import Gallery from '../Components/Gallery';
 import { useState } from 'react';
 
 export default function Dashboard() {
-    const [refresh, setRefresh] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const handleRefresh = () => {
+        setRefreshKey(prev => prev + 1);
+    };
 
     return (
-        <>
-        <Navbar />
-        <div className="p-6 max-w-4xl mx-auto">
-            <UploadBox onComplete={() => setRefresh(!refresh)} />
-            <Gallery key={String(refresh)} />
+        <div className="dashboard">
+            <Navbar />
+            <main className="dashboard-content">
+                <div className="dashboard-header">
+                    <h2>Scan Documents</h2>
+                    <p>Upload images or PDFs to automatically detect and crop documents</p>
+                </div>
+                <UploadBox onComplete={handleRefresh} />
+                <Gallery key={refreshKey} onRefresh={handleRefresh} />
+            </main>
         </div>
-        </>
     );
-}
+};
