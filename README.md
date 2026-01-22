@@ -10,8 +10,8 @@ A full-stack web application that automatically detects, perspective-corrects, a
 ## 🔐 Test Credentials
 
 ```
-EMAIL: anshuman302005@gmail.com
-Password: Ansh@2004#2004
+Email: testuser@docscanner.app
+Password: Test@12345
 
 OR
 
